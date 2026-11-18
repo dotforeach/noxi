@@ -1,0 +1,54 @@
+<main>
+  <header class="toolbar">
+    <h1>Solicitudes de crédito</h1>
+    <a class="button" routerLink="/solicitudes/nueva">Nueva solicitud</a>
+  </header>
+
+  <div class="filters" role="group" aria-label="Filtrar por estado">
+    @for (s of statuses; track s.value) {
+      <button type="button" [class.active]="filter() === s.value" (click)="setFilter(s.value)">{{ s.label }}</button>
+    }
+  </div>
+
+  @if (error(); as msg) {
+    <p class="error" role="alert">{{ msg }}</p>
+  }
+
+  @if (loading()) {
+    <p>Cargando…</p>
+  } @else if (requests().length === 0) {
+    <p>No hay solicitudes.</p>
+  } @else {
+    <table>
+      <thead>
+        <tr><th>Cédula</th><th>Monto</th><th>Plazo</th><th>Estado</th><th>Creada</th><th>Comentario</th><th></th></tr>
+      </thead>
+      <tbody>
+        @for (r of requests(); track r.id) {
+          <tr>
+            <td>{{ r.cedula }}</td>
+            <td>{{ r.amount | currency: 'USD' }}</td>
+            <td>{{ r.termMonths }} meses</td>
+            <td><span class="badge" [class]="'badge ' + r.status">{{ labels[r.status] }}</span></td>
+            <td>{{ r.createdAt | date: 'short' }}</td>
+            <td>{{ r.statusComment }}</td>
+            <td>
+              @if (r.status === 'PENDING') {
+                @if (pending()?.id === r.id) {
+                  <input type="text" [(ngModel)]="comment" placeholder="Comentario (obligatorio)" />
+                  <button type="button" (click)="confirmResolve()">
+                    Confirmar {{ pending()?.status === 'APPROVED' ? 'aprobación' : 'rechazo' }}
+                  </button>
+                  <button type="button" (click)="cancelResolve()">Cancelar</button>
+                } @else {
+                  <button type="button" (click)="startResolve(r.id, 'APPROVED')">Aprobar</button>
+                  <button type="button" (click)="startResolve(r.id, 'REJECTED')">Rechazar</button>
+                }
+              }
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  }
+</main>

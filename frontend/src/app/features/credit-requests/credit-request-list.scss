@@ -1,0 +1,9 @@
+.toolbar { display: flex; justify-content: space-between; align-items: center; }
+.filters { display: flex; gap: .5rem; margin: 1rem 0; }
+.filters .active { font-weight: 700; background: #1d4e89; color: #fff; }
+table { width: 100%; border-collapse: collapse; }
+th, td { text-align: left; padding: .5rem; border-bottom: 1px solid #ddd; }
+.badge { padding: .1rem .5rem; border-radius: 1rem; font-size: .8rem; }
+.PENDING { background: #fff3cd; }
+.APPROVED { background: #d1e7dd; }
+.REJECTED { background: #f8d7da; }

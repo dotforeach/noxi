@@ -1,0 +1,27 @@
+<main class="card">
+  <h1>Nueva solicitud de crédito</h1>
+  <form [formGroup]="form" (ngSubmit)="submit()">
+    <label>Cédula
+      <input type="text" formControlName="cedula" placeholder="8-123-456" />
+    </label>
+    <label>Monto (USD {{ limits.AMOUNT_MIN }} – {{ limits.AMOUNT_MAX }})
+      <input type="number" formControlName="amount" step="0.01" />
+    </label>
+    @if (form.controls.amount.touched && form.controls.amount.invalid) {
+      <p class="error">El monto debe estar entre {{ limits.AMOUNT_MIN }} y {{ limits.AMOUNT_MAX }}.</p>
+    }
+    <label>Plazo en meses ({{ limits.TERM_MIN_MONTHS }} – {{ limits.TERM_MAX_MONTHS }})
+      <input type="number" formControlName="termMonths" />
+    </label>
+    @if (form.controls.termMonths.touched && form.controls.termMonths.invalid) {
+      <p class="error">El plazo debe ser un entero entre {{ limits.TERM_MIN_MONTHS }} y {{ limits.TERM_MAX_MONTHS }}.</p>
+    }
+    @if (error(); as msg) {
+      <p class="error" role="alert">{{ msg }}</p>
+    }
+    <div class="actions">
+      <button type="submit" [disabled]="loading()">{{ loading() ? 'Enviando…' : 'Crear solicitud' }}</button>
+      <a routerLink="/solicitudes">Cancelar</a>
+    </div>
+  </form>
+</main>
