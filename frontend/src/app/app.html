@@ -1,1 +1,7 @@
+@if (auth.isLoggedIn()) {
+  <nav class="topbar">
+    <strong>Noxi</strong>
+    <button type="button" (click)="auth.logout()">Cerrar sesión</button>
+  </nav>
+}
 <router-outlet />
