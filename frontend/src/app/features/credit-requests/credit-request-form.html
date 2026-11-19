@@ -2,8 +2,11 @@
   <h1>Nueva solicitud de crédito</h1>
   <form [formGroup]="form" (ngSubmit)="submit()">
     <label>Cédula
-      <input type="text" formControlName="cedula" placeholder="8-123-456" />
+      <input type="text" formControlName="cedula" placeholder="8-123-456" maxlength="20" />
     </label>
+    @if (form.controls.cedula.touched && form.controls.cedula.invalid) {
+      <p class="error">Ingresa una cédula válida, por ejemplo 8-123-456, PE-1-234 o E-8-12345.</p>
+    }
     <label>Monto (USD {{ limits.AMOUNT_MIN }} – {{ limits.AMOUNT_MAX }})
       <input type="number" formControlName="amount" step="0.01" />
     </label>

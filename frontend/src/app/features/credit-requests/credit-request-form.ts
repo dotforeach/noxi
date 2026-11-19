@@ -2,7 +2,14 @@ import { Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { extractErrorMessage } from '../../core/http-error';
-import { AMOUNT_MAX, AMOUNT_MIN, TERM_MAX_MONTHS, TERM_MIN_MONTHS } from '../../core/models/credit-request';
+import {
+  AMOUNT_MAX,
+  AMOUNT_MIN,
+  CEDULA_MAX_LENGTH,
+  CEDULA_PATTERN,
+  TERM_MAX_MONTHS,
+  TERM_MIN_MONTHS,
+} from '../../core/models/credit-request';
 import { CreditRequestsService } from '../../core/services/credit-requests.service';
 
 @Component({
@@ -17,7 +24,7 @@ export class CreditRequestForm {
 
   protected readonly limits = { AMOUNT_MIN, AMOUNT_MAX, TERM_MIN_MONTHS, TERM_MAX_MONTHS };
   protected readonly form = this.fb.group({
-    cedula: ['', Validators.required],
+    cedula: ['', [Validators.required, Validators.maxLength(CEDULA_MAX_LENGTH), Validators.pattern(CEDULA_PATTERN)]],
     amount: [AMOUNT_MIN, [Validators.required, Validators.min(AMOUNT_MIN), Validators.max(AMOUNT_MAX)]],
     termMonths: [
       TERM_MIN_MONTHS,
@@ -31,7 +38,8 @@ export class CreditRequestForm {
     if (this.form.invalid) return this.form.markAllAsTouched();
     this.loading.set(true);
     this.error.set(null);
-    this.service.create(this.form.getRawValue()).subscribe({
+    const value = this.form.getRawValue();
+    this.service.create({ ...value, cedula: value.cedula.trim().toUpperCase() }).subscribe({
       next: () => this.router.navigate(['/solicitudes']),
       error: (err) => {
         this.error.set(extractErrorMessage(err));
