@@ -13,10 +13,13 @@ import { CreditRequestsModule } from './credit-requests/credit-requests.module.j
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
         type: 'postgres',
+        uuidExtension: 'pgcrypto' as const,
         url: config.getOrThrow<string>('DATABASE_URL'),
         autoLoadEntities: true,
-        // Solo para el reto/desarrollo; en producción usar migraciones.
-        synchronize: true,
+        // El esquema se gestiona solo con migraciones (src/migrations); se aplican al arrancar.
+        synchronize: false,
+        migrations: [new URL('./migrations/*.js', import.meta.url).pathname],
+        migrationsRun: true,
       }),
     }),
     AuthModule,
