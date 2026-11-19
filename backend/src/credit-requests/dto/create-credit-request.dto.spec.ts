@@ -21,7 +21,22 @@ describe('CreateCreditRequestDto', () => {
     ['plazo mayor a 60', { termMonths: 61 }],
     ['plazo no entero', { termMonths: 12.5 }],
     ['cédula vacía', { cedula: '' }],
+    ['cédula con texto arbitrario', { cedula: '<script>' }],
+    ['cédula sin guiones', { cedula: '81234456' }],
+    ['cédula con provincia inexistente', { cedula: '14-123-456' }],
+    ['cédula de más de 20 caracteres', { cedula: '8-' + '1'.repeat(30) }],
   ])('rechaza %s', async (_name, override) => {
     expect((await check({ ...valid, ...override })).length).toBeGreaterThan(0);
+  });
+
+  it.each(['8-123-456', '08-0123-004567', '1-1-1', '13-1234-123456', 'E-8-12345', 'N-12-345', 'PE-1-234', 'PI-5-678'])(
+    'acepta la cédula %s',
+    async (cedula) => {
+      expect(await check({ ...valid, cedula })).toHaveLength(0);
+    },
+  );
+
+  it('normaliza la cédula (espacios y minúsculas)', () => {
+    expect(plainToInstance(CreateCreditRequestDto, { ...valid, cedula: ' pe-1-234 ' }).cedula).toBe('PE-1-234');
   });
 });
