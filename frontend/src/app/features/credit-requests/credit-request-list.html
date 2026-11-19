@@ -32,18 +32,20 @@
             <td><span class="badge" [class]="'badge ' + r.status">{{ labels[r.status] }}</span></td>
             <td>{{ r.createdAt | date: 'short' }}</td>
             <td>{{ r.statusComment }}</td>
-            <td>
+            <td class="actions-cell">
               @if (r.status === 'PENDING') {
-                @if (pending()?.id === r.id) {
-                  <input type="text" [(ngModel)]="comment" placeholder="Comentario (obligatorio)" />
-                  <button type="button" (click)="confirmResolve()">
-                    Confirmar {{ pending()?.status === 'APPROVED' ? 'aprobación' : 'rechazo' }}
-                  </button>
-                  <button type="button" (click)="cancelResolve()">Cancelar</button>
-                } @else {
-                  <button type="button" (click)="startResolve(r.id, 'APPROVED')">Aprobar</button>
-                  <button type="button" (click)="startResolve(r.id, 'REJECTED')">Rechazar</button>
-                }
+                <div class="actions">
+                  @if (pending()?.id === r.id) {
+                    <input type="text" [(ngModel)]="comment" placeholder="Comentario (obligatorio)" />
+                    <button type="button" (click)="confirmResolve()">
+                      Confirmar {{ pending()?.status === 'APPROVED' ? 'aprobación' : 'rechazo' }}
+                    </button>
+                    <button type="button" (click)="cancelResolve()">Cancelar</button>
+                  } @else {
+                    <button type="button" (click)="startResolve(r.id, 'APPROVED')">Aprobar</button>
+                    <button type="button" (click)="startResolve(r.id, 'REJECTED')">Rechazar</button>
+                  }
+                </div>
               }
             </td>
           </tr>
