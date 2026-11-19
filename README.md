@@ -28,7 +28,7 @@ Requiere los puertos 3000 (API) y 4200 (web) libres.
 cp .env.example .env      # completar todas las variables (ver tabla)
 docker compose up --build
 ```
-- Web: http://localhost:4200 (iniciar sesión con `ADMIN_EMAIL` / `ADMIN_PASSWORD`)
+- Web: http://localhost:4200 (crear una cuenta en `/registro`; cada persona se registra con su propio correo y contraseña)
 - API: http://localhost:3000/api
 
 | Variable | Descripción |
@@ -36,16 +36,26 @@ docker compose up --build
 | `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB` | Credenciales de la base de datos que levanta el compose |
 | `JWT_SECRET` | Secreto para firmar los JWT |
 | `JWT_EXPIRES_IN` | Vigencia del token (por defecto `1h`) |
-| `ADMIN_EMAIL`, `ADMIN_PASSWORD` | Usuario inicial; se crea al arrancar el backend si no existe |
 
-No hay credenciales en el repositorio: todo sale del `.env`, ignorado por git. La base de datos es un PostgreSQL local en Docker y las tablas se crean al iniciar (`synchronize`, solo para este reto; en producción irían migraciones). Para usar Supabase u otro Postgres, apuntar `DATABASE_URL` del backend a esa instancia.
+No hay credenciales ni usuarios predefinidos en el repositorio: los secretos salen del `.env` (ignorado por git) y los usuarios se crean con el registro.
+
+## Base de datos y migraciones
+PostgreSQL local en Docker. El esquema se gestiona **solo con migraciones de TypeORM** (`backend/src/migrations`, `synchronize` está desactivado) y se aplican automáticamente al arrancar el backend. Para usar Supabase u otro Postgres, apuntar `DATABASE_URL` del backend a esa instancia.
+
+```bash
+cd backend
+npm run migration:generate -- src/migrations/NombreCambio   # compara las entidades con la BD y genera la migración
+npm run migration:run                                       # aplica las pendientes
+npm run migration:revert                                    # revierte la última
+```
+El CLI lee `DATABASE_URL` de `backend/.env`.
 
 ## Desarrollo local (sin Docker)
 Si la API no corre en `http://localhost:3000`, cambiar `frontend/src/app/core/api.config.ts`.
 ```bash
 # Backend (necesita un Postgres propio)
 cd backend
-cp .env.example .env      # completar DATABASE_URL, JWT_SECRET, ADMIN_*
+cp .env.example .env      # completar DATABASE_URL, JWT_SECRET
 npm install --legacy-peer-deps
 npm run start:dev
 
@@ -67,6 +77,7 @@ Todas las rutas (salvo login) requieren `Authorization: Bearer <token>`.
 
 | Método y ruta | Descripción | Códigos |
 |---|---|---|
+| `POST /api/auth/register` | `{email, password (8–72)}` → `{accessToken}` | 201, 400, 409 |
 | `POST /api/auth/login` | `{email, password}` → `{accessToken}` | 200, 400, 401 |
 | `POST /api/credit-requests` | `{cedula, amount, termMonths}` | 201, 400, 401 |
 | `GET /api/credit-requests?status=` | Lista; `status` = `PENDING`, `APPROVED` o `REJECTED` | 200, 400, 401 |
