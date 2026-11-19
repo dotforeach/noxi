@@ -1,5 +1,7 @@
 import { Module } from '@nestjs/common';
+import { APP_GUARD } from '@nestjs/core';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AppController } from './app.controller.js';
 import { AppService } from './app.service.js';
@@ -22,10 +24,15 @@ import { CreditRequestsModule } from './credit-requests/credit-requests.module.j
         migrationsRun: true,
       }),
     }),
+    // Límite general por IP; los endpoints de autenticación tienen uno más estricto.
+    ThrottlerModule.forRoot({
+      throttlers: [{ name: 'default', ttl: 60_000, limit: 100 }],
+      errorMessage: 'Demasiadas solicitudes. Intenta de nuevo en un minuto.',
+    }),
     AuthModule,
     CreditRequestsModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [AppService, { provide: APP_GUARD, useClass: ThrottlerGuard }],
 })
 export class AppModule {}
