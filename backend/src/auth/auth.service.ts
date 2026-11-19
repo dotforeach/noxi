@@ -1,5 +1,4 @@
-import { Inject, Injectable, Logger, OnModuleInit, UnauthorizedException } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
+import { ConflictException, Inject, Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -7,26 +6,20 @@ import { hashPassword, verifyPassword } from './password.js';
 import { User } from './user.entity.js';
 
 @Injectable()
-export class AuthService implements OnModuleInit {
-  private readonly logger = new Logger(AuthService.name);
-
+export class AuthService {
   constructor(
     @InjectRepository(User) private readonly users: Repository<User>,
     @Inject(JwtService) private readonly jwt: JwtService,
-    @Inject(ConfigService) private readonly config: ConfigService,
   ) {}
 
-  /** Crea el usuario inicial a partir de variables de entorno (nunca hay credenciales en el repo). */
-  async onModuleInit() {
-    const email = this.config.get<string>('ADMIN_EMAIL');
-    const password = this.config.get<string>('ADMIN_PASSWORD');
-    if (!email || !password) {
-      this.logger.warn('ADMIN_EMAIL/ADMIN_PASSWORD no definidos: no se creó usuario inicial');
-      return;
+  async register(email: string, password: string) {
+    if (await this.users.existsBy({ email })) {
+      throw new ConflictException('Ya existe un usuario con ese correo');
     }
-    if (await this.users.existsBy({ email })) return;
-    await this.users.save(this.users.create({ email, passwordHash: await hashPassword(password) }));
-    this.logger.log(`Usuario inicial creado: ${email}`);
+    const user = await this.users.save(
+      this.users.create({ email, passwordHash: await hashPassword(password) }),
+    );
+    return this.issueToken(user);
   }
 
   async login(email: string, password: string) {
@@ -35,7 +28,10 @@ export class AuthService implements OnModuleInit {
     if (!user || !(await verifyPassword(password, user.passwordHash))) {
       throw new UnauthorizedException('Credenciales inválidas');
     }
-    const accessToken = await this.jwt.signAsync({ sub: user.id, email: user.email });
-    return { accessToken };
+    return this.issueToken(user);
+  }
+
+  private async issueToken(user: User) {
+    return { accessToken: await this.jwt.signAsync({ sub: user.id, email: user.email }) };
   }
 }

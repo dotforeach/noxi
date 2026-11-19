@@ -1,10 +1,16 @@
 import { Body, Controller, HttpCode, Inject, Post } from '@nestjs/common';
 import { AuthService } from './auth.service.js';
 import { LoginDto } from './dto/login.dto.js';
+import { RegisterDto } from './dto/register.dto.js';
 
 @Controller('auth')
 export class AuthController {
   constructor(@Inject(AuthService) private readonly auth: AuthService) {}
+
+  @Post('register')
+  register(@Body() dto: RegisterDto) {
+    return this.auth.register(dto.email, dto.password);
+  }
 
   @Post('login')
   @HttpCode(200)
