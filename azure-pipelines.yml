@@ -1,0 +1,83 @@
+# CI en cada push/PR; CD (ACR + Container Apps) solo en main.
+# Requiere: service connection ARM "noxi-azure" y las variables de abajo (o un variable group).
+trigger:
+  branches:
+    include: [main]
+
+pr:
+  branches:
+    include: [main]
+
+pool:
+  vmImage: ubuntu-latest
+
+variables:
+  azureServiceConnection: noxi-azure
+  resourceGroup: Noxi
+  acrName: noxiacr48213
+  backendApp: noxi-backend
+  frontendApp: noxi-frontend
+  imageTag: $(Build.BuildId)
+
+stages:
+  - stage: CI
+    jobs:
+      - job: backend
+        steps:
+          - task: NodeTool@0
+            inputs: { versionSpec: 22.x }
+          - script: npm ci --legacy-peer-deps
+            workingDirectory: backend
+            displayName: Backend install
+          - script: npm run lint
+            workingDirectory: backend
+            displayName: Backend lint
+          - script: npm test
+            workingDirectory: backend
+            displayName: Backend tests
+          - script: npm run build
+            workingDirectory: backend
+            displayName: Backend build
+
+      - job: frontend
+        steps:
+          - task: NodeTool@0
+            inputs: { versionSpec: 22.x }
+          - script: npm ci
+            workingDirectory: frontend
+            displayName: Frontend install
+          - script: npm test -- --watch=false
+            workingDirectory: frontend
+            displayName: Frontend tests
+          - script: npm run build
+            workingDirectory: frontend
+            displayName: Frontend build
+
+  - stage: Deploy
+    dependsOn: CI
+    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+    jobs:
+      - deployment: aca
+        environment: noxi-prod
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - checkout: self
+                - task: AzureCLI@2
+                  displayName: Build images (ACR) y desplegar
+                  inputs:
+                    azureSubscription: $(azureServiceConnection)
+                    scriptType: bash
+                    scriptLocation: inlineScript
+                    inlineScript: |
+                      set -euo pipefail
+                      az extension add --name containerapp --upgrade -y
+                      az acr build -r $(acrName) -t noxi-backend:$(imageTag)  backend
+                      az acr build -r $(acrName) -t noxi-frontend:$(imageTag) frontend
+                      az containerapp update -g $(resourceGroup) -n $(backendApp) \
+                        --image $(acrName).azurecr.io/noxi-backend:$(imageTag)
+                      az containerapp update -g $(resourceGroup) -n $(frontendApp) \
+                        --image $(acrName).azurecr.io/noxi-frontend:$(imageTag)
+                      az containerapp show -g $(resourceGroup) -n $(frontendApp) \
+                        --query properties.configuration.ingress.fqdn -o tsv

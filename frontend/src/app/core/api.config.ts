@@ -1,2 +1,2 @@
-/** URL base de la API. El navegador la consume directamente (docker-compose publica el backend en :3000). */
-export const API_URL = 'http://localhost:3000/api';
+/** URL base de la API. Ruta relativa: nginx (frontend/nginx.conf.template) hace proxy de /api al backend. */
+export const API_URL = '/api';

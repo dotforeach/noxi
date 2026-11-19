@@ -59,7 +59,7 @@ npm run migration:revert                                    # revierte la últim
 El CLI lee `DATABASE_URL` de `backend/.env`.
 
 ## Desarrollo local (sin Docker)
-Si la API no corre en `http://localhost:3000`, cambiar `frontend/src/app/core/api.config.ts`.
+El frontend llama a `/api` y nginx lo reenvía a `BACKEND_URL` (ver `frontend/nginx.conf.template`).
 ```bash
 # Backend (necesita un Postgres propio)
 cd backend
