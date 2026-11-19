@@ -73,8 +73,13 @@ stages:
                     inlineScript: |
                       set -euo pipefail
                       az extension add --name containerapp --upgrade -y
-                      az acr build -r $(acrName) -t noxi-backend:$(imageTag)  backend
-                      az acr build -r $(acrName) -t noxi-frontend:$(imageTag) frontend
+                      # ACR Tasks (az acr build) está bloqueado en Azure for Students: build con Docker del agente.
+                      az acr login -n $(acrName)
+                      for svc in backend frontend; do
+                        img=$(acrName).azurecr.io/noxi-$svc:$(imageTag)
+                        docker build -t "$img" "$svc"
+                        docker push "$img"
+                      done
                       az containerapp update -g $(resourceGroup) -n $(backendApp) \
                         --image $(acrName).azurecr.io/noxi-backend:$(imageTag)
                       az containerapp update -g $(resourceGroup) -n $(frontendApp) \
