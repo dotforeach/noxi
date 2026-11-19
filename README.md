@@ -59,7 +59,7 @@ npm run migration:revert                                    # revierte la últim
 El CLI lee `DATABASE_URL` de `backend/.env`.
 
 ## Desarrollo local (sin Docker)
-El frontend llama a `/api` y nginx lo reenvía a `BACKEND_URL` (ver `frontend/nginx.conf.template`).
+El frontend llama a `/api`: en Docker lo reenvía nginx a `BACKEND_URL` (`frontend/nginx.conf.template`) y con `npm start` el dev server (`frontend/proxy.conf.json`) lo reenvía a `http://localhost:3000`.
 ```bash
 # Backend (necesita un Postgres propio)
 cd backend
@@ -104,3 +104,53 @@ Reglas de negocio: monto entre $500 y $50,000 (hasta 2 decimales); plazo entero 
 - **Límite de peticiones**: 100 por minuto y por IP en general y 10 por minuto en login/registro (`@nestjs/throttler`); al excederlo responde 429 con mensaje legible. Se oculta la cabecera `X-Powered-By`.
 - **Sesión en el frontend**: el JWT se guarda en `localStorage`; un interceptor lo adjunta y cierra sesión ante un 401.
 - **Validación doble**: el formulario replica los rangos del backend para dar feedback inmediato; el backend es la fuente de verdad.
+
+## Despliegue en Azure (opcional)
+Además del `docker compose` local, el proyecto se despliega en **Azure Container Apps** con un pipeline de **Azure DevOps** (`azure-pipelines.yml`). Es un extra: la prueba se ejecuta completa con Docker en local.
+
+### Arquitectura
+```mermaid
+flowchart LR
+    U([Usuario]) -->|HTTPS| FE
+
+    subgraph ADO[Azure DevOps]
+        REPO[(Repo Noxi<br/>rama main)] --> PIPE[Pipeline noxi<br/>azure-pipelines.yml]
+        SC[Service connection<br/>noxi-azure]
+        PIPE -.usa.-> SC
+    end
+
+    subgraph AZ[Azure · resource group Noxi · northcentralus]
+        MI[Identidad administrada<br/>noxi-deploy<br/>Contributor en el RG · AcrPush en el ACR]
+        ACR[(Container Registry<br/>noxiacr48213)]
+        PULL[Identidad noxi-acr-pull<br/>AcrPull]
+
+        subgraph ENV[Container Apps Environment · noxi-env · VNet noxi-vnet]
+            FE[noxi-frontend<br/>nginx + Angular]
+            BE[noxi-backend<br/>NestJS]
+        end
+
+        DB[(PostgreSQL Flexible Server<br/>noxi-pg · SSL obligatorio)]
+    end
+
+    SC -->|federación de identidad<br/>sin secretos| MI
+    PIPE -->|1. docker push| ACR
+    PIPE -->|2. az containerapp update| ENV
+    ACR -->|pull con noxi-acr-pull| ENV
+    FE -->|/api proxy nginx → BACKEND_URL| BE
+    BE -->|DATABASE_URL sslmode=require| DB
+```
+
+### Flujo del pipeline
+1. **CI** (cada push o PR a `main`): lint, tests y build del backend; tests y build del frontend.
+2. **Deploy** (solo `main`, entorno `noxi-prod`): `docker build` y `docker push` de ambas imágenes a Azure Container Registry con el número de build como tag, y `az containerapp update` en las dos apps.
+
+### Decisiones
+- **Sin secretos en el pipeline**: la service connection usa *Workload Identity Federation* con una identidad administrada (`noxi-deploy`), así que no hay contraseñas ni claves de servicio guardadas. Se eligió esta variante porque la cuenta no puede crear App Registrations en Entra ID.
+- **Mínimo privilegio**: `noxi-deploy` es Contributor solo sobre el resource group `Noxi` y AcrPush sobre el registro; las apps descargan imágenes con otra identidad (`noxi-acr-pull`) que solo tiene AcrPull.
+- **Imágenes con Docker en el agente** en lugar de `az acr build`, porque ACR Tasks está bloqueado en suscripciones Azure for Students.
+- **Mismo origen**: el frontend llama a `/api` y nginx lo reenvía a `BACKEND_URL`, por lo que el navegador no hace peticiones entre orígenes y no hay URLs del backend en el código.
+- **Secretos de runtime** (`DATABASE_URL`, `JWT_SECRET`) como *secrets* de la Container App; la base de datos exige SSL y su firewall solo admite servicios de Azure.
+- **Migraciones** automáticas al arrancar el backend (`migrationsRun`).
+
+### Aprovisionar la infraestructura
+`scripts/azure-provision.sh` crea el PostgreSQL y las dos Container Apps sobre el resource group, el registro y el entorno ya existentes (ver las variables al inicio del script). Requiere `az login` y un `JWT_SECRET` en `.env`. Después hay que crear en Azure DevOps la service connection `noxi-azure` y un pipeline que apunte a `azure-pipelines.yml`.
