@@ -17,7 +17,7 @@ export class Register {
 
   protected readonly form = this.fb.group({
     email: ['', [Validators.required, Validators.email]],
-    password: ['', [Validators.required, Validators.minLength(8), Validators.maxLength(72)]],
+    password: ['', [Validators.required, Validators.minLength(8), Validators.maxLength(128)]],
   });
   protected readonly error = signal<string | null>(null);
   protected readonly loading = signal(false);

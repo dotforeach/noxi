@@ -6,9 +6,9 @@ export class RegisterDto {
   @IsEmail()
   email: string;
 
-  // 72 bytes es el límite habitual de los algoritmos de hash de contraseñas.
+  // Se admiten letras, números y cualquier carácter especial; el hash (scrypt) no limita la longitud.
   @IsString()
   @MinLength(8)
-  @MaxLength(72)
+  @MaxLength(128)
   password: string;
 }

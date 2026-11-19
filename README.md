@@ -77,7 +77,7 @@ Todas las rutas (salvo login) requieren `Authorization: Bearer <token>`.
 
 | Método y ruta | Descripción | Códigos |
 |---|---|---|
-| `POST /api/auth/register` | `{email, password (8–72)}` → `{accessToken}` | 201, 400, 409 |
+| `POST /api/auth/register` | `{email, password (8–128)}` → `{accessToken}` | 201, 400, 409 |
 | `POST /api/auth/login` | `{email, password}` → `{accessToken}` | 200, 400, 401 |
 | `POST /api/credit-requests` | `{cedula, amount, termMonths}` | 201, 400, 401 |
 | `GET /api/credit-requests?status=` | Lista; `status` = `PENDING`, `APPROVED` o `REJECTED` | 200, 400, 401 |

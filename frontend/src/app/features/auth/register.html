@@ -8,7 +8,7 @@
       <input type="password" formControlName="password" autocomplete="new-password" />
     </label>
     @if (form.controls.password.touched && form.controls.password.invalid) {
-      <p class="error">La contraseña debe tener entre 8 y 72 caracteres.</p>
+      <p class="error">La contraseña debe tener entre 8 y 128 caracteres.</p>
     }
     @if (error(); as msg) {
       <p class="error" role="alert">{{ msg }}</p>
