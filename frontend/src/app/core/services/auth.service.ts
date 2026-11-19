@@ -21,6 +21,12 @@ export class AuthService {
       .pipe(tap(({ accessToken }) => this.setToken(accessToken)));
   }
 
+  register(email: string, password: string) {
+    return this.http
+      .post<{ accessToken: string }>(`${API_URL}/auth/register`, { email, password })
+      .pipe(tap(({ accessToken }) => this.setToken(accessToken)));
+  }
+
   logout() {
     localStorage.removeItem(TOKEN_KEY);
     this._token.set(null);
